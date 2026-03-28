@@ -165,7 +165,7 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
                                     sheetName.Equals("M.Localization.Entry", StringComparison.OrdinalIgnoreCase) &&
                                     baseName.Equals("M.Localization.Entry.Template", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    string fallbackKey = $"M.Localization.Entry.BaseTemplate{sourceSuffix}";
+                                    string fallbackKey = $"M.Localization.Entry.BaseTemplate";
                                     if (row.TryGetValue(fallbackKey, out var fallbackObj))
                                     {
                                         sourceText = fallbackObj?.ToString() ?? string.Empty;
