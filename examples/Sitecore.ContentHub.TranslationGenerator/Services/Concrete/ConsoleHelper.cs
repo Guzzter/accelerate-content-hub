@@ -1,4 +1,4 @@
-﻿using Sitecore.CH.TranslationGenerator.Services.Abstract;
+using Sitecore.CH.TranslationGenerator.Services.Abstract;
 using System.Text.Json;
 
 namespace Sitecore.CH.TranslationGenerator.Services.Concrete
@@ -134,7 +134,7 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
                 WriteTable(new string[] { title }, data.Select(x => new string[] { x }));
         }
 
-        private bool TryGetJsonInput<T>(string label, out T? value, Func<T, bool>? validateValueFunc = null)
+        private bool TryGetJsonInput<T>(string label, out T? value, Func<T?, bool>? validateValueFunc = null)
         {
             return TryGetInput(label, out value, i => JsonSerializer.Deserialize<T>(i), validateValueFunc);
         }
