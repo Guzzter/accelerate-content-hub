@@ -42,9 +42,8 @@
 
             internal class Properties
             {
+                internal const string Identifier = "identifier";
                 internal const string Label = "Label";
-
-                public static string Identifier { get; internal set; }
             }
         }
     }

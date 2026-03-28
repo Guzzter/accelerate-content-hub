@@ -1,4 +1,5 @@
-﻿using MiniExcelLibs;
+﻿using Microsoft.Extensions.Logging;
+using MiniExcelLibs;
 using MiniExcelLibs.OpenXml;
 using Sitecore.CH.TranslationGenerator.Constants;
 using Sitecore.CH.TranslationGenerator.Models;
@@ -9,10 +10,25 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
 {
     internal class ExcelService : IExcelService
     {
-        public IEnumerable<LocalizationEntry> GetLocalizationEntries(string filePath)
+        private readonly ILogger<ExcelService> logger;
+
+        public ExcelService(ILogger<ExcelService> logger)
         {
-            using var stream = File.OpenRead(filePath);
-            return stream.Query(true, SchemaConstants.LocalizationEntry.DefinitionName).Select(x => GetLocalizationEntryFromExcelRow((IDictionary<string, object>)x)).ToList();
+            this.logger = logger;
+        }
+
+        public IEnumerable<LocalizationEntry>? GetLocalizationEntries(string filePath)
+        {
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                return stream.Query(true, SchemaConstants.LocalizationEntry.DefinitionName).Select(x => GetLocalizationEntryFromExcelRow((IDictionary<string, object>)x)).ToList();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Could not load rows for " + SchemaConstants.LocalizationEntry.DefinitionName);
+            }
+            return null;
         }
 
         public IEnumerable<PortalPage> GetPortalPages(string filePath)
