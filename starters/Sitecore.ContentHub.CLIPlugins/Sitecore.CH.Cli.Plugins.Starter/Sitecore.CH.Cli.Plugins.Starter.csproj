@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sitecore.CH.Cli.Plugins.Base\Sitecore.CH.Cli.Plugins.Base.csproj" />
+  </ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="PowerShell -NoProfile -ExecutionPolicy RemoteSigned -file $(ProjectDir)Build.ps1 $(ProjectDir) $(OutputPath) $(Configuration) $(ProjectName)" />
+	</Target>
+
+</Project>

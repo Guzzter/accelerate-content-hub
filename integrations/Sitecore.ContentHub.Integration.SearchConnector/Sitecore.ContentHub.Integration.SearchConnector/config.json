@@ -1,0 +1,48 @@
+{
+    "CultureMaps": [
+      {
+        "ContentHubCulture": "en-US",
+        "SearchCulture": "en_us"
+      },
+      {
+        "ContentHubCulture": "fr-FR",
+        "SearchCulture": "fr_fr"
+      }
+    ],
+    "DefinitionMaps": [
+      {
+        "ContentHubEntityDefinition": "M.PCM.Product",
+        "SearchEntity": "contenthubproduct",
+        "FieldMaps": [
+          {
+            "Type": "property",
+            "SearchAttributeName": "name",
+            "ContentHubPropertyName": "ProductName"
+          },
+          {
+            "Type": "relation",
+            "SearchAttributeName": "catalog_names",
+            "ContentHubRelations": [
+              {
+                "Name": "PCMCatalogToProduct",
+                "Role": "Child"
+              }
+            ],
+            "ContentHubRelatedPropertyName": "CatalogLabel"
+          },
+          {
+            "Type": "publiclink",
+            "SearchAttributeName": "image_url",
+            "ContentHubRelations": [
+              {
+                "Name": "PCMProductToMasterAsset",
+                "Role": "Parent"
+              }
+            ],
+            "ContentHubResourceName": "downloadOriginal",
+            "CreateLinkIfNotExists": true
+          }
+        ]
+      }
+    ]
+}

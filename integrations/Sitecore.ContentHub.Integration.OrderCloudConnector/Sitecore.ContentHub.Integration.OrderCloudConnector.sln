@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitecore.ContentHub.Integration.OrderCloudConnector", "Sitecore.ContentHub.Integration.OrderCloudConnector\Sitecore.ContentHub.Integration.OrderCloudConnector.csproj", "{9AFBF3DF-FDD2-3927-A201-DA25F8E7A7D6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitecore.ContentHub.Integration.OrderCloudConnector.AppHost", "Sitecore.ContentHub.Integration.OrderCloudConnector.AppHost\Sitecore.ContentHub.Integration.OrderCloudConnector.AppHost.csproj", "{AE0381DB-BEDD-4E30-83B6-1369DFB41689}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sitecore.ContentHub.Integration.OrderCloudConnector.ServiceDefaults", "Sitecore.ContentHub.Integration.OrderCloudConnector.ServiceDefaults\Sitecore.ContentHub.Integration.OrderCloudConnector.ServiceDefaults.csproj", "{E3E3AC9E-DF57-AC7B-BF20-5444D900EACB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		readme.md = readme.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9AFBF3DF-FDD2-3927-A201-DA25F8E7A7D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AFBF3DF-FDD2-3927-A201-DA25F8E7A7D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AFBF3DF-FDD2-3927-A201-DA25F8E7A7D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AFBF3DF-FDD2-3927-A201-DA25F8E7A7D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE0381DB-BEDD-4E30-83B6-1369DFB41689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE0381DB-BEDD-4E30-83B6-1369DFB41689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE0381DB-BEDD-4E30-83B6-1369DFB41689}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE0381DB-BEDD-4E30-83B6-1369DFB41689}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3E3AC9E-DF57-AC7B-BF20-5444D900EACB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3E3AC9E-DF57-AC7B-BF20-5444D900EACB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3E3AC9E-DF57-AC7B-BF20-5444D900EACB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3E3AC9E-DF57-AC7B-BF20-5444D900EACB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6DE639BE-00D6-462B-A385-FC109E4E03C1}
+	EndGlobalSection
+EndGlobal
