@@ -1,0 +1,10 @@
+﻿# User-specific files
+*.suo
+*.user
+
+# Build results
+[Dd]ebug/
+[Bb]in/
+[Oo]bj/
+.vs
+/examples/Sitecore.ContentHub.TranslationGenerator/appsettings.local.json
