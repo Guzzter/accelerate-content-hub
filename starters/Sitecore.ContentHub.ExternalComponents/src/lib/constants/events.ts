@@ -1,1 +1,0 @@
-export const BEFORE_SEARCH = "BEFORE_SEARCH";

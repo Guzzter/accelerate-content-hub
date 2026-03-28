@@ -1,5 +1,0 @@
-@import url("../../global.css");
-
-.field {
-    @apply flex flex-col gap-2;
-}

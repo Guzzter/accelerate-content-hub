@@ -1,9 +1,0 @@
-﻿# User-specific files
-*.suo
-*.user
-
-# Build results
-[Dd]ebug/
-[Bb]in/
-[Oo]bj/
-.vs

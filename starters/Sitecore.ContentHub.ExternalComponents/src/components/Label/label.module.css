@@ -1,5 +1,0 @@
-@import url("../../global.css");
-
-.label {
-    @apply text-black/55 text-xs font-bold;
-}
