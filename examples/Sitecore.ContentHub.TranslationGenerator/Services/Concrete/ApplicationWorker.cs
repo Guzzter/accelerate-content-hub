@@ -6,7 +6,7 @@ using System.Globalization;
 
 namespace Sitecore.CH.TranslationGenerator.Services.Concrete
 {
-    public class ApplicationWorker(IConsoleHelper consoleHelper, IExcelService excelService, ITranslationService translationService, Microsoft.Extensions.Configuration.IConfiguration configuration) : IHostedService
+    public class ApplicationWorker(IConsoleHelper consoleHelper, IExcelService excelService, ITranslationService translationService, IConfiguration configuration) : IHostedService
     {
         private const string ExcelExtension = ".xlsx";
         private const int MaxConcurrency = 10;
@@ -21,7 +21,13 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
             {
                 try
                 {
-                    var targetLanguages = configuration.GetSection("TargetLanguages").Get<string[]>() ?? [];
+                    var sourceLanguageStr = configuration.GetValue<string>("SourceLanguage") ?? "en-US";
+                    var sourceLanguage = new CultureInfo(sourceLanguageStr);
+
+                    var targetLanguages = (configuration.GetSection("TargetLanguages").Get<string[]>() ?? []).OrderBy(x => x).ToArray();
+                    var definitionsToTranslate = configuration.GetSection("DefinitionsToTranslate").Get<string[]>() ?? [];
+                    var definitionsToCopyValues = configuration.GetSection("DefinitionsToCopyValues").Get<string[]>() ?? [];
+
                     List<CultureInfo> selectedLanguages = [];
 
                     if (targetLanguages.Length > 0)
@@ -32,7 +38,8 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
                             consoleHelper.Write($"{kvp.Key} - {kvp.Value}");
                         consoleHelper.Write("A - All");
 
-                        var selection = consoleHelper.GetInput("Select languages (comma separated, e.g. 1, 2) or 'A' for all", x => x, x => {
+                        var selection = consoleHelper.GetInput("Select languages (comma separated, e.g. 1, 2) or 'A' for all", x => x, x =>
+                        {
                             if (x.Trim().Equals("A", StringComparison.OrdinalIgnoreCase)) return true;
                             var parts = x.Split(',');
                             return parts.All(p => int.TryParse(p.Trim(), out var pInt) && dictionary.ContainsKey(pInt));
@@ -53,26 +60,29 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
                     }
 
                     var inputFilePath = consoleHelper.GetInput("Input file", x => Path.GetExtension(x) == ExcelExtension && File.Exists(x))!;
-                    
+
                     string languageLabel = selectedLanguages.Count == 1 ? selectedLanguages[0].Name : "Multiple";
                     var outputFilePath = consoleHelper.GetInput("Output file", GetDefaultOutputFilePath(inputFilePath, languageLabel), x => Path.GetExtension(x) == ExcelExtension && !File.Exists(x))!;
 
-                    var localisationEntries = excelService.GetLocalizationEntries(inputFilePath)?.ToList();
-                    var portalPages = excelService.GetPortalPages(inputFilePath)?.ToList();
-                    var assetTypes = excelService.GetAssetTypes(inputFilePath)?.ToList();
+                    var sheets = excelService.GetAllSheets(inputFilePath);
 
-                    if (localisationEntries == null || portalPages == null || assetTypes == null)
+                    if (sheets == null || sheets.Count == 0)
                     {
-                        consoleHelper.Write("Failed to load one or more data sheets from the input file. Please check the file format.");
+                        consoleHelper.Write("Failed to load any sheets from the input file. Please check the file format.");
                         continue;
                     }
 
                     foreach (var language in selectedLanguages)
                     {
-                        await TranslateAllAsync(language, localisationEntries, portalPages, assetTypes, cancellationToken);
+                        await TranslateAllDynamicAsync(language, sourceLanguage, sheets, definitionsToTranslate, definitionsToCopyValues, cancellationToken);
                     }
 
-                    excelService.Save(outputFilePath, localisationEntries, portalPages, assetTypes);
+                    var filteredSheets = sheets
+                        .Where(kvp => definitionsToTranslate.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase) || 
+                                     definitionsToCopyValues.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase))
+                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                    excelService.SaveAllSheets(outputFilePath, filteredSheets);
                     consoleHelper.Write($"Output saved to: {outputFilePath}");
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -90,62 +100,123 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
             }
         }
 
-        private async Task TranslateAllAsync(
-            CultureInfo language,
-            List<LocalizationEntry> localisationEntries,
-            List<PortalPage> portalPages,
-            List<AssetType> assetTypes,
+        private async Task TranslateAllDynamicAsync(
+            CultureInfo targetLanguage,
+            CultureInfo sourceLanguage,
+            Dictionary<string, object> sheets,
+            string[] definitionsToTranslate,
+            string[] definitionsToCopyValues,
             CancellationToken cancellationToken)
         {
             var tasks = new List<Task>();
-
-            List<LocalizationEntry> localisationToTranslate = [];/* = localisationEntries
-                .Where(x => !x.Templates.ContainsKey(language) || x.Templates[language] == string.Empty)
-                .ToList();*/
-
-            List<PortalPage> pagesToTranslate = []; /* = portalPages
-                .Where(x => !x.Titles.ContainsKey(language) || x.Titles[language] == string.Empty)
-                .Where(x => x.Titles.Count > 0)
-                .ToList();*/
-
-            List<AssetType> assetTypesToTranslate = assetTypes
-                .Where(x => !x.Label.ContainsKey(language) || x.Label[language] == string.Empty)
-                .Where(x => x.Label.Count > 0)
-                .ToList();
-
-            int totalItems = localisationToTranslate.Count + pagesToTranslate.Count + assetTypesToTranslate.Count;
+            int totalItems = 0;
+            int copiedItems = 0;
             int[] progress = [0];
+
+            List<Func<Task>> translationActions = [];
+
+            foreach (var kvp in sheets)
+            {
+                string sheetName = kvp.Key;
+
+                bool shouldTranslate = definitionsToTranslate.Contains(sheetName, StringComparer.OrdinalIgnoreCase);
+                bool shouldCopy = definitionsToCopyValues.Contains(sheetName, StringComparer.OrdinalIgnoreCase);
+
+                if (!shouldTranslate && !shouldCopy)
+                    continue;
+
+                if (kvp.Value is List<IDictionary<string, object>> rows)
+                {
+                    string sourceSuffix = $"#{sourceLanguage.Name}";
+                    string targetSuffix = $"#{targetLanguage.Name}";
+
+                    // Identify all possible target columns for this sheet and initialize them for all rows
+                    // This ensures MiniExcel has a consistent schema across all rows, preventing KeyNotFoundException.
+                    var targetColumns = rows.SelectMany(r => r.Keys)
+                                            .Where(k => k.EndsWith(sourceSuffix, StringComparison.OrdinalIgnoreCase))
+                                            .Select(k => $"{k.Substring(0, k.Length - sourceSuffix.Length)}{targetSuffix}")
+                                            .Distinct()
+                                            .ToList();
+
+                    foreach (var row in rows)
+                    {
+                        foreach (var col in targetColumns)
+                        {
+                            if (!row.ContainsKey(col)) row[col] = null;
+                        }
+                    }
+
+                    foreach (var row in rows)
+                    {
+                        var sourceKeys = row.Keys.Where(k => k.EndsWith(sourceSuffix, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                        foreach (var sourceKey in sourceKeys)
+                        {
+                            string baseName = sourceKey.Substring(0, sourceKey.Length - sourceSuffix.Length);
+                            string targetColumn = $"{baseName}{targetSuffix}";
+
+                            if (!row.ContainsKey(targetColumn) || string.IsNullOrWhiteSpace(row[targetColumn]?.ToString()))
+                            {
+                                object? sourceObj = row[sourceKey];
+                                string sourceText = sourceObj?.ToString() ?? string.Empty;
+
+                                // Exceptional fallback for M.Localization.Entry: Try BaseTemplate if Template is empty
+                                if (string.IsNullOrWhiteSpace(sourceText) &&
+                                    sheetName.Equals("M.Localization.Entry", StringComparison.OrdinalIgnoreCase) &&
+                                    baseName.Equals("M.Localization.Entry.Template", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    string fallbackKey = $"M.Localization.Entry.BaseTemplate{sourceSuffix}";
+                                    if (row.TryGetValue(fallbackKey, out var fallbackObj))
+                                    {
+                                        sourceText = fallbackObj?.ToString() ?? string.Empty;
+                                    }
+                                }
+
+                                if (!string.IsNullOrWhiteSpace(sourceText))
+                                {
+                                    if (shouldTranslate)
+                                    {
+                                        totalItems++;
+                                        translationActions.Add(async () =>
+                                        {
+                                            var translatedText = await translationService.Translate(targetLanguage.Name, sourceText, sourceLanguage.Name);
+
+                                            lock (row)
+                                            {
+                                                row[targetColumn] = translatedText;
+                                            }
+
+                                            consoleHelper.OverwriteLine($"Progress: {Interlocked.Increment(ref progress[0])}/{totalItems} | Sent to Azure: {translationService.TotalCharactersSent} chars");
+                                        });
+                                    }
+                                    else if (shouldCopy)
+                                    {
+                                        copiedItems++;
+                                        row[targetColumn] = sourceText;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (copiedItems > 0)
+            {
+                consoleHelper.Write($"Copied {copiedItems} items directly for {targetLanguage.Name}.");
+            }
 
             if (totalItems == 0)
             {
-                consoleHelper.Write("All items are already translated.");
+                consoleHelper.Write($"All items for {targetLanguage.Name} are already translated or have no source text.");
                 return;
             }
 
-            consoleHelper.Write($"Translating {totalItems} items to {language.Name}...");
+            consoleHelper.Write($"Translating {totalItems} items to {targetLanguage.Name}...");
 
-            tasks.AddRange(localisationToTranslate.Select(x => ThrottledTranslateAsync(async () =>
-            {
-                x.Templates[language] = await translationService.Translate(language.Name, x.BaseTemplate);
-                consoleHelper.OverwriteLine($"Progress: {Interlocked.Increment(ref progress[0])}/{totalItems}");
-            }, cancellationToken)));
-
-            tasks.AddRange(pagesToTranslate.Select(x => ThrottledTranslateAsync(async () =>
-            {
-                var source = x.Titles.First();
-                x.Titles[language] = await translationService.Translate(language.Name, source.Value, source.Key.Name);
-                consoleHelper.OverwriteLine($"Progress: {Interlocked.Increment(ref progress[0])}/{totalItems}");
-            }, cancellationToken)));
-
-            tasks.AddRange(assetTypesToTranslate.Select(x => ThrottledTranslateAsync(async () =>
-            {
-                var source = x.Label.First();
-                x.Label[language] = await translationService.Translate(language.Name, source.Value, source.Key.Name);
-                consoleHelper.OverwriteLine($"Progress: {Interlocked.Increment(ref progress[0])}/{totalItems}");
-            }, cancellationToken)));
-
+            tasks.AddRange(translationActions.Select(action => ThrottledTranslateAsync(action, cancellationToken)));
             await Task.WhenAll(tasks);
-            consoleHelper.Write($"\nTranslation complete. {progress[0]}/{totalItems} items translated.");
+            consoleHelper.Write($"\nTranslation to {targetLanguage.Name} complete.");
         }
 
         private static async Task ThrottledTranslateAsync(Func<Task> work, CancellationToken cancellationToken)
