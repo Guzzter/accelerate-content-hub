@@ -9,7 +9,7 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
     public class ApplicationWorker(IConsoleHelper consoleHelper, IExcelService excelService, ITranslationService translationService, IConfiguration configuration) : IHostedService
     {
         private const string ExcelExtension = ".xlsx";
-        private const int MaxConcurrency = 10;
+        private const int MaxConcurrency = 4;
         private static readonly SemaphoreSlim _throttle = new(MaxConcurrency);
 
         public async Task StartAsync(CancellationToken cancellationToken)

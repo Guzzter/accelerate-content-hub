@@ -59,8 +59,9 @@ namespace Sitecore.CH.TranslationGenerator.Services.Concrete
                         break;
                     }
 
-                    logger.LogWarning("Rate limited (429) while translating to '{TargetLanguage}'. Retrying in {Delay}ms... (Attempt {Attempt}/{MaxAttempts})", targetLanguage, delayMs, i + 1, maxRetries);
-                    await Task.Delay(delayMs);
+                    var jitter = Random.Shared.Next(100, 500);
+                    logger.LogWarning("Rate limited (429) while translating to '{TargetLanguage}'. Retrying in {Delay}ms (+{Jitter}ms jitter)... (Attempt {Attempt}/{MaxAttempts})", targetLanguage, delayMs, jitter, i + 1, maxRetries);
+                    await Task.Delay(delayMs + jitter);
                     delayMs *= 2; // Exponential backoff
                 }
                 catch (RequestFailedException ex)
